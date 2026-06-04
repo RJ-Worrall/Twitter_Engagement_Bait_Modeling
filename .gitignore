@@ -1,5 +1,22 @@
+# Secrets
 Important Keys.txt
 .env
-venv/
+
+# Python
 __pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# Models
+*.joblib
+*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
