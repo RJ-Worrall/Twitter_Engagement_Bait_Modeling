@@ -1,3 +1,4 @@
+
 -- CREATE DATABASE twitter_engagement;
 -- Table Creation
 CREATE TABLE IF NOT EXISTS tweets (
@@ -53,7 +54,6 @@ CREATE TABLE IF NOT EXISTS tweet_labels (
 
 CREATE TABLE IF NOT EXISTS users (
     author_id TEXT PRIMARY KEY,
-
     username TEXT,
     name TEXT,
     verified BOOLEAN,
@@ -61,10 +61,13 @@ CREATE TABLE IF NOT EXISTS users (
     followers_count INT,
     following_count INT,
     tweet_count INT,
+    listed_count INT,
 
     raw_json JSONB,
     inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
 -- Adding additional columns to track collection source and api search query
 ALTER TABLE tweets
 ADD COLUMN IF NOT EXISTS collection_source TEXT;
