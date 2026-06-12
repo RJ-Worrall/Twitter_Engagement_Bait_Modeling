@@ -255,3 +255,10 @@ FROM tweet_media
 GROUP BY media_key
 HAVING COUNT(*) > 1;
 
+-- Checking how many tweets are eligible for labeling, sorted by engagment
+SELECT retweet_count, reply_count, like_count, quote_count,
+	(retweet_count + reply_count + like_count + quote_count) AS engagement_count
+FROM tweets
+WHERE eligible_for_labeling = true
+ORDER BY engagement_count DESC;
+
