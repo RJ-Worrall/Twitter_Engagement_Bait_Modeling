@@ -1,3 +1,7 @@
+
+
+
+
 -- ============================================================
 -- Twitter Engagement Bait Modeling Database Schema
 -- Database: twitter_engagement
@@ -231,7 +235,7 @@ LEFT JOIN tweet_media m
     ON t.tweet_id = m.tweet_id
 LIMIT 20;
 
--- Veryifying tweets with more than 1 media are filtered correctly
+-- Veryifying tweets with more than 1 media are filte
 
 SELECT *
 FROM tweet_media
@@ -255,10 +259,20 @@ FROM tweet_media
 GROUP BY media_key
 HAVING COUNT(*) > 1;
 
--- Checking how many tweets are eligible for labeling, sorted by engagment
-SELECT retweet_count, reply_count, like_count, quote_count,
-	(retweet_count + reply_count + like_count + quote_count) AS engagement_count
+SELECT * 
 FROM tweets
 WHERE eligible_for_labeling = true
-ORDER BY engagement_count DESC;
 
+SELECT * 
+FROM tweets
+WHERE eligible_for_labeling = true AND collection_source = 'engagement_grok';
+
+SELECT COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'tweet_media'
+ORDER BY ORDINAL_POSITION;
+
+SELECT user_like_count, user_media_count
+FROM users
+WHERE user_like_count IS NOT NULL
+AND user_media_count IS NOT NULL
