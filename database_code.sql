@@ -2,6 +2,8 @@
 
 
 
+
+
 -- ============================================================
 -- Twitter Engagement Bait Modeling Database Schema
 -- Database: twitter_engagement
@@ -276,3 +278,10 @@ SELECT user_like_count, user_media_count
 FROM users
 WHERE user_like_count IS NOT NULL
 AND user_media_count IS NOT NULL
+
+ALTER TABLE tweet_labels
+RENAME COLUMN is_manipulative_bait TO is_harmful_bait;
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name='tweet_labels';
