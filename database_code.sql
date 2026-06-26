@@ -4,6 +4,7 @@
 
 
 
+
 -- ============================================================
 -- Twitter Engagement Bait Modeling Database Schema
 -- Database: twitter_engagement
@@ -285,3 +286,194 @@ RENAME COLUMN is_manipulative_bait TO is_harmful_bait;
 SELECT column_name
 FROM information_schema.columns
 WHERE table_name='tweet_labels';
+
+-- ============================================================
+-- Rebuild modeling dataset table
+-- One row per labeled tweet
+-- ============================================================
+
+DROP TABLE IF EXISTS tweet_modeling_dataset;
+
+CREATE TABLE tweet_modeling_dataset AS
+WITH media_summary AS (
+    SELECT
+        tweet_id,
+
+        COUNT(media_key) AS media_count_from_media_table,
+
+        SUM(CASE WHEN media_type = 'photo' THEN 1 ELSE 0 END) AS num_photos,
+        SUM(CASE WHEN media_type = 'video' THEN 1 ELSE 0 END) AS num_videos,
+        SUM(CASE WHEN media_type = 'animated_gif' THEN 1 ELSE 0 END) AS num_gifs,
+
+        MAX(CASE WHEN media_type = 'photo' THEN 1 ELSE 0 END) AS has_photo,
+        MAX(CASE WHEN media_type = 'video' THEN 1 ELSE 0 END) AS has_video,
+        MAX(CASE WHEN media_type = 'animated_gif' THEN 1 ELSE 0 END) AS has_gif,
+
+        SUM(CASE WHEN alt_text IS NOT NULL THEN 1 ELSE 0 END) AS num_alt_text,
+        MAX(CASE WHEN alt_text IS NOT NULL THEN 1 ELSE 0 END) AS has_alt_text,
+
+        MAX(width) AS max_media_width,
+        MAX(height) AS max_media_height,
+        MAX(duration_ms) AS max_duration_ms,
+
+        AVG(width) AS avg_media_width,
+        AVG(height) AS avg_media_height,
+
+        STRING_AGG(DISTINCT media_type, ', ') AS media_types
+
+    FROM tweet_media
+    GROUP BY tweet_id
+)
+
+SELECT
+    -- ========================================================
+    -- IDs
+    -- ========================================================
+    t.tweet_id,
+    t.author_id,
+
+    -- ========================================================
+    -- Tweet text/features
+    -- ========================================================
+    t.text,
+    t.clean_text,
+    t.created_at,
+    t.lang,
+
+    LENGTH(t.text) AS text_length,
+
+    CASE
+        WHEN LENGTH(t.text) > 0
+        THEN LENGTH(REGEXP_REPLACE(t.text, '[^A-Z]', '', 'g'))::FLOAT / LENGTH(t.text)
+        ELSE 0
+    END AS uppercase_ratio,
+
+    LENGTH(t.text) - LENGTH(REPLACE(t.text, '!', '')) AS exclamation_count,
+    LENGTH(t.text) - LENGTH(REPLACE(t.text, '?', '')) AS question_count,
+
+    CASE WHEN POSITION('http' IN t.text) > 0 THEN 1 ELSE 0 END AS has_url,
+    CASE WHEN POSITION('@' IN t.text) > 0 THEN 1 ELSE 0 END AS has_mention,
+    CASE WHEN POSITION('#' IN t.text) > 0 THEN 1 ELSE 0 END AS has_hashtag,
+
+    -- ========================================================
+    -- Tweet engagement metrics
+    -- ========================================================
+    t.like_count,
+    t.reply_count,
+    t.retweet_count,
+    t.quote_count,
+
+    (
+        COALESCE(t.like_count, 0)
+        + COALESCE(t.reply_count, 0)
+        + COALESCE(t.retweet_count, 0)
+        + COALESCE(t.quote_count, 0)
+    ) AS engagement_total,
+
+    CASE
+        WHEN COALESCE(t.like_count, 0) > 0
+        THEN t.reply_count::FLOAT / t.like_count
+        ELSE NULL
+    END AS reply_like_ratio,
+
+    CASE
+        WHEN COALESCE(t.like_count, 0) > 0
+        THEN t.quote_count::FLOAT / t.like_count
+        ELSE NULL
+    END AS quote_like_ratio,
+
+    -- ========================================================
+    -- Collection metadata
+    -- ========================================================
+    t.collection_source,
+    t.search_query,
+
+    -- ========================================================
+    -- User/account features
+    -- ========================================================
+    u.username,
+    u.name AS display_name,
+    u.verified,
+
+    u.followers_count,
+    u.following_count,
+    u.tweet_count AS user_tweet_count,
+    u.listed_count,
+    u.user_like_count,
+    u.user_media_count,
+
+    CASE
+        WHEN COALESCE(u.following_count, 0) > 0
+        THEN u.followers_count::FLOAT / u.following_count
+        ELSE NULL
+    END AS follower_following_ratio,
+
+    -- ========================================================
+    -- Media aggregate features
+    -- ========================================================
+    t.has_media,
+    COALESCE(t.media_count, 0) AS tweet_reported_media_count,
+
+    COALESCE(ms.media_count_from_media_table, 0) AS media_count_from_media_table,
+    COALESCE(ms.num_photos, 0) AS num_photos,
+    COALESCE(ms.num_videos, 0) AS num_videos,
+    COALESCE(ms.num_gifs, 0) AS num_gifs,
+
+    COALESCE(ms.has_photo, 0) AS has_photo,
+    COALESCE(ms.has_video, 0) AS has_video,
+    COALESCE(ms.has_gif, 0) AS has_gif,
+
+    COALESCE(ms.num_alt_text, 0) AS num_alt_text,
+    COALESCE(ms.has_alt_text, 0) AS has_alt_text,
+
+    ms.max_media_width,
+    ms.max_media_height,
+    ms.max_duration_ms,
+    ms.avg_media_width,
+    ms.avg_media_height,
+    ms.media_types,
+
+    -- ========================================================
+    -- Label columns / target
+    -- ========================================================
+    l.engagement_label,
+    l.is_engagement_bait,
+    l.is_harmful_bait,
+    l.bait_type,
+    l.label_confidence,
+    l.media_context_used,
+    l.label_reason,
+    l.labeled_by,
+    l.labeled_at
+
+FROM tweets t
+
+LEFT JOIN users u
+    ON t.author_id = u.author_id
+
+LEFT JOIN media_summary ms
+    ON t.tweet_id = ms.tweet_id
+
+INNER JOIN tweet_labels l
+    ON t.tweet_id = l.tweet_id
+
+WHERE t.eligible_for_labeling = TRUE;
+
+-- Verifying correct full table creation
+
+SELECT COUNT(*) AS rows
+FROM tweet_modeling_dataset;
+
+SELECT engagement_label, COUNT(*)
+FROM tweet_modeling_dataset
+GROUP BY engagement_label
+ORDER BY COUNT(*) DESC;
+
+SELECT bait_type, COUNT(*)
+FROM tweet_modeling_dataset
+GROUP BY bait_type
+ORDER BY COUNT(*) DESC;
+
+SELECT *
+FROM tweet_modeling_dataset
+LIMIT 10;
