@@ -1,16 +1,42 @@
-# Twitter_Engagement_Bait_Modeling
+## Twitter_Engagement_Bait_Modeling
 
-Introduction:
-This project is designed to flag X/Twitter posts meant to provoke engagement, whether it be harmless engagement like asking for likes, or harmful posts meant to incite outrage through fake news, provocatory langauge, and more. The data source is the X/Twitter developer platform, where users can make API calls to receive detailed tweet statistics and metadata. Data was stored in a PostgreSQL database, and integrated with Python to clean and organize the data into readable tables. After data cleaning was complete, the data was through different machine learning models, each with their own proper procedure of hyperparameter tuning and training/testing in order to determine the model best at predicting the nature of a tweet.
+# Introduction:
+This project is designed to flag X/Twitter posts meant to provoke engagement, whether it be harmless engagement like asking for likes, or harmful posts meant to incite outrage through fake news, provocatory langauge, and more. The data source is the X/Twitter developer platform, where users can make API calls to receive detailed tweet statistics and metadata. Data was stored in a PostgreSQL database, and integrated with Python to clean and organize the data into readable tables. After data cleaning was complete, the data was run through an OpenAI API labeler, with a prompt fine tuned to label tweets as either normal, benign (harmless) bait, or harmful engagement bait. Tweets were first tested in batches using different prompt iterations, then manually reviewed in order to fine tune the final prompt. Once manual review yielded expected results, tweets were labeled and instered into our database, ready to be used for ML modeling. Finally, using our complete labeled dataset, different machine learning models were trained, each with their own proper procedure of hyperparameter tuning and training/testing in order to determine the model best at predicting the nature of a tweet.
 
 
-Tools Used:  
-Python (numpy, pandas, matplotlib,scikit-learn, Random Forest, XGBoost, roBERTa)
-SQL (PostgreSQL)
+# Tools Used:  
+
+Python
+• pandas
+• NumPy
+• scikit-learn
+• XGBoost
+• Hugging Face Transformers
+• PyTorch
+• matplotlib
+
+Database
+• PostgreSQL
+
+Data Collection
+• X API
+
+LLM Labeling
+• OpenAI API
+
+Models
+• Random Forest
+• XGBoost
+• RoBERTa
+
+# Project Pipeline
+
+
  
-# Summary
+# Results
 
-The best performing model in the analysis was the roBERTa model utilizing just the tweet text, without any input from metadata stats (likes, account followers, etc.) Because of the imbalanced nature of the classes within our data (there were significantly more normal tweets than benign/harmful engagement), the macro f1 score was used as our primary indicator of model performance. Our best model had a score of .84, as opposed to an accuracy of .87, which implies the model performs well, but suffers slightly when predicting the minority classes. 
+Model Results:
+
 
 # Implications
 
