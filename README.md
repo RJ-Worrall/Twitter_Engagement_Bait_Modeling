@@ -35,7 +35,7 @@ Models
  
 ## Results
 
-Model Results:
+<img width="3864" height="2037" alt="image" src="https://github.com/user-attachments/assets/10deacf5-e12c-46a0-801a-b8d5c896aa57" />
 
 
 ## Implications
